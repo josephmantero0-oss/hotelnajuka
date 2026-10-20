@@ -45,7 +45,8 @@ module.exports = async function handler(req, res) {
   try {
     // GET: Fetch live orders
     if (req.method === 'GET') {
-      const endpoint = `${SUPABASE_URL}/rest/v1/orders?or=(type.eq.restaurant:najuka,type.eq.hotel:najuka)&select=*&order=created_at.desc&limit=200`;
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const endpoint = `${SUPABASE_URL}/rest/v1/orders?or=(type.eq.restaurant:najuka,type.eq.hotel:najuka)&created_at=gte.${ninetyDaysAgo}&select=*&order=created_at.desc&limit=200`;
       const response = await fetch(endpoint, {
         headers: getHeaders(),
         cache: 'no-store'

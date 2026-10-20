@@ -872,20 +872,45 @@ if(waBtn){
  });
 }
 function updateGuestTracker(){
- var myId=localStorage.getItem("najuka_my_order"),el=document.getElementById("guesttracker");
- if(!myId||!el){if(el)el.hidden=true;return}
+ var el=document.getElementById("guesttracker");
+ if(!el)return;
  if(view!=="view"){el.hidden=true;return}
- var ord=liveOrders.find(function(o){return o.id===myId});
+ var myId=localStorage.getItem("najuka_my_order");
+ var ord=null;
+ if(myId){
+   ord=liveOrders.find(function(o){return o.id===myId});
+ }
+ if(!ord && isRoomLocked){
+   ord=liveOrders.find(function(o){
+     var r=(o.room||"").trim();
+     return r===lockedRoom || r.indexOf(lockedRoom+" ")===0 || r.indexOf(lockedRoom+"(")==0;
+   });
+ }
  if(!ord){el.hidden=true;return}
+
+ var st=ord.status||"pending";
+ var rem=10;
+ if(st==="delivered"||st==="completed"||st==="rejected"){
+   var fin=new Date(ord.updatedAt||ord.updated_at||ord.createdAt||ord.created_at).getTime();
+   var elapsed=Date.now()-fin;
+   if(elapsed >= 10 * 60 * 1000){ // 10 minutes auto-vanish
+     el.hidden=true;
+     return;
+   }
+   rem=Math.max(0, Math.ceil(10 - elapsed / 60000));
+ }
+
  el.hidden=false;
- document.getElementById("gtnum").textContent=ord.id+" (Room "+ord.room+")";
- var st=ord.status,msg="Waiting for kitchen confirmation...";
- if(st==="accepted")msg="🟢 Accepted! Kitchen is preparing food.";
- else if(st==="ready")msg="🍳 Ready! On its way to your room.";
- else if(st==="delivered")msg="🎉 Delivered! Enjoy your meal.";
- else if(st==="rejected")msg="❌ Order declined ("+(ord.rejectReason||"Items unavailable")+")";
+ var isFood=isFoodOrder(ord);
+ document.getElementById("gtnum").textContent=(isFood?"🍽️ #":"🛎️ #")+ord.id+" (Room "+ord.room+")";
+ var msg="Waiting for staff confirmation...";
+ if(st==="accepted"||st==="in_progress") msg=isFood?"👨‍🍳 Accepted! Cooking your order.":"🛎️ In Progress! Staff is on it.";
+ else if(st==="ready") msg="🍳 Ready! On its way to your room.";
+ else if(st==="delivered"||st==="completed") msg="✅ Delivered to room! (Vanishes in "+rem+"m)";
+ else if(st==="rejected") msg="❌ Declined ("+(ord.rejectReason||ord.reject_reason||"Unavailable")+"). (Vanishes in "+rem+"m)";
  document.getElementById("gtstat").textContent=msg;
- document.getElementById("gttime").textContent=new Date(ord.updatedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+ var tVal=ord.updatedAt||ord.updated_at||ord.createdAt||ord.created_at;
+ document.getElementById("gttime").textContent=tVal?new Date(tVal).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"Live";
 }
 function fetchLiveOrders(){
  return fetch('/api/orders')
