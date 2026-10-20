@@ -262,6 +262,10 @@ a.ghost{text-decoration:none;display:inline-block}
 .empty-box{padding:30px;text-align:center;font-family:var(--mono);background:#fff;border:1.5px dashed #14110F;opacity:.8}
 .guest-tracker{background:var(--sky);border:2px solid #14110F;box-shadow:4px 4px 0 #14110F;padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .gt-stat{font-weight:600}
+.room-badge{display:inline-flex;align-items:center;gap:6px;background:#14110F;color:#F6F3E8;padding:4px 10px;font-family:var(--mono);font-size:0.75rem;letter-spacing:0.06em;border:1.5px solid var(--hot);box-shadow:2px 2px 0 var(--hot);margin-left:8px}
+.room-badge-dot{width:7px;height:7px;border-radius:50%;background:#4FBF6B;display:inline-block;animation:pulse 1.5s infinite}
+.room-badge small{background:var(--hot);color:#fff;padding:1px 4px;font-size:0.6rem;font-weight:700}
+.locked-tag{display:inline-block;background:#e2dfd2;color:#14110F;border:1px solid #14110F;padding:2px 6px;font-family:var(--mono);font-size:0.7rem;margin-top:4px}
 </style>
 </head>
 <body>
@@ -269,7 +273,7 @@ a.ghost{text-decoration:none;display:inline-block}
 <div class="hero">
   <div class="grain" aria-hidden="true"><i></i><i></i><i></i></div>
   <header><div class="wrap">
-    <a class="logo" href="#top">Najuka<b></b></a>
+    <div style="display:flex;align-items:center;gap:10px"><a class="logo" href="#top">Najuka<b></b></a><div id="room-badge" class="room-badge" hidden><span class="room-badge-dot"></span><span id="room-badge-text">ROOM</span><small>VERIFIED</small></div></div>
     <nav aria-label="Main"><a href="#dining">Dining</a><a href="#stay">Stay info</a><a href="#menu" data-menu>Menu</a><a href="#menu" id="admintop" class="adm">Admin</a><span class="lang" role="group" aria-label="Language"><button type="button" data-l="en" aria-pressed="true">EN</button><button type="button" data-l="mr" aria-pressed="false">मराठी</button><button type="button" data-l="hi" aria-pressed="false">हिंदी</button></span></nav>
   </div></header>
   <main id="top" class="wrap stage">
@@ -458,6 +462,7 @@ if(!calm){
 // In-page menu card
 var menu=document.getElementById("menu"),lastFocus=null;
 function openMenu(e){if(e)e.preventDefault();lastFocus=document.activeElement;menu.hidden=false;menu.scrollTop=0;document.body.style.overflow="hidden";document.getElementById("mclose").focus();
+ applyLockedRoom();
  try{history.replaceState(null,"","#menu")}catch(x){}}
 function closeMenu(){menu.hidden=true;document.body.style.overflow="";try{history.replaceState(null,"",location.pathname+location.search)}catch(x){}if(lastFocus)lastFocus.focus()}
 document.querySelectorAll("[data-menu]").forEach(function(a){a.addEventListener("click",openMenu)});
@@ -474,6 +479,20 @@ function safeUrl(u){u=String(u||"").trim();return /^https?:\/\//i.test(u)?u:""}
 MENU.review=safeUrl(MENU.review);MENU.map=safeUrl(MENU.map);if(!/^[\w.\-]{2,}@[\w.\-]{2,}$/.test(MENU.upi||""))MENU.upi="";
 var MEALS=[["morning","Morning","Breakfast to start the day."],["afternoon","Afternoon","A full lunch, served fresh."],["evening","Evening","Tea and snacks before dinner."],["night","Night","Dinner, and food to your room if you prefer."]];
 var CAN=false,view="view",mbody=document.getElementById("mbody");
+var urlParams=new URLSearchParams(window.location.search);
+var lockedRoom=(urlParams.get("room")||urlParams.get("r")||"").trim();
+if(lockedRoom){try{sessionStorage.setItem("najuka_locked_room",lockedRoom)}catch(e){}}
+else{try{lockedRoom=sessionStorage.getItem("najuka_locked_room")||""}catch(e){}}
+
+function applyLockedRoom(){
+ if(!lockedRoom)return;
+ var rb=document.getElementById("room-badge"),rt=document.getElementById("room-badge-text");
+ if(rb&&rt){rt.textContent="ROOM "+lockedRoom;rb.hidden=false}
+ var or=document.getElementById("oroom");
+ if(or){or.value=lockedRoom;or.readOnly=true;or.style.background="#ece9dc";or.style.cursor="not-allowed";or.title="Room "+lockedRoom+" verified from link"}
+ var sr=document.getElementById("sroom");
+ if(sr){sr.value=lockedRoom;sr.readOnly=true;sr.style.background="#ece9dc";sr.style.cursor="not-allowed";sr.title="Room "+lockedRoom+" verified from link"}
+}
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function money(v){v=String(v||"").trim();return /^\d+(\.\d+)?$/.test(v)?"₹"+v:v}
 function itemHtml(i,id){
@@ -523,6 +542,7 @@ function editHtml(){
   +fld("erv","Google review link (the link that opens the review box)",MENU.review,"https://...")
   +fld("eph","Front desk phone shown to guests",MENU.phone,"")+fld("eml","Email shown to guests",MENU.email,"")+fld("ead","Address shown to guests",MENU.address,"")+'</div>';
 
+ h+='<div class="eb"><h3>Room Direct Links (Per-Room Ordering)</h3><p class="note">Generate and copy direct links for each room QR code. When guests open their room link, their room number is locked so no one can falsify it!</p><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input id="qroominput" placeholder="Room number (e.g. 101)" style="flex:1"><button type="button" class="add" id="qgenlink">Copy Room Link</button></div><div id="qroommsg" class="mono" style="color:var(--hot);min-height:1.2em"></div></div>';
  h+='<div class="eb"><h3>Change admin password</h3><p class="note">Leave both empty to keep the current password.</p><input type="password" id="ecurpass" autocomplete="off" aria-label="Current admin password" placeholder="Current password" style="margin-bottom:8px"><input type="password" id="enewpass" autocomplete="new-password" aria-label="New admin password" placeholder="New password (at least 10 characters)"></div>';
  return h+'<div class="etool"><button type="button" class="mclose" id="esave">Save and publish</button><button type="button" class="ghost" id="ecancel">Cancel</button></div>'}
 function authHtml(setup){return '<div class="key" aria-hidden="true"><b>Najuka</b><span class="mono">STAFF ACCESS</span></div><h2>'+(setup?'Create the <em>admin password.</em>':'Staff <em>sign in.</em>')+'</h2><p class="note">'+(setup?'Choose a password with at least 10 characters. Staff will need it to change the menu.':'Enter the admin password to change the menu or send a message to guests.')+'</p><div class="er"><input type="password" id="apass" class="en" autocomplete="'+(setup?'new-password':'current-password')+'" placeholder="Password" aria-label="Password"><button type="button" class="mclose" id="ago">'+(setup?'Set password':'Sign in')+'</button></div>'}
@@ -753,6 +773,8 @@ mbody.addEventListener("click",function(e){var t=e.target;
  if(t.id==="togglenotif"){soundEnabled=!soundEnabled;renderMenu();return}
  if(t.id==="testchime"){playChime();toast("Audio alert chime played!",true);return}
  if(t.id==="stafflogout"){staffLogout();return}
+ if(t.id==="qgenlink"){var r=(document.getElementById("qroominput").value||"").trim();if(!r){toast("Enter a room number first");return}var link=location.origin+"/?room="+encodeURIComponent(r);navigator.clipboard.writeText(link).then(function(){toast("Copied room link!",true);document.getElementById("qroommsg").textContent="✓ Copied: "+link}).catch(function(){document.getElementById("qroommsg").textContent=link});return;}
+ 
  var ab=t.closest(".btn-act");
  if(ab){
   var card=ab.closest(".ord-card"),oid=card.dataset.id,act=ab.dataset.act,rsn="";
@@ -911,6 +933,7 @@ document.addEventListener("click",function(e){var b=e.target.closest("[data-l]")
 function lines(t){return String(t||"").split("\n").map(function(x){return x.trim()}).filter(Boolean)}
 var SVC=[];
 function renderServices(){
+ applyLockedRoom();
  var sec=document.getElementById("services"),d=nm(MENU.desk),list=lines(MENU.services);
  sec.hidden=!d||!list.length;if(sec.hidden)return;
  SVC=list;var box=document.getElementById("svc");
@@ -983,7 +1006,7 @@ function renderContact(){
 var pend=null,afterLoad=null;try{pend=JSON.parse(sessionStorage.getItem("najukaPending")||"null");sessionStorage.removeItem("najukaPending")}catch(e){}
 if(pend){if(pend.updated===MENU.updated)afterLoad=function(){toast("Saved. The site is updated.",true)};
  else{Object.keys(pend).forEach(function(k){if(k!=="admin")MENU[k]=pend[k]});afterLoad=function(){openMenu();go("edit","The page was updated by someone else while you were saving. Your changes are shown again. Check them, then tap Save and publish.")}}}
-renderMenu();if(afterLoad)afterLoad();
+renderMenu();if(afterLoad)afterLoad();applyLockedRoom();
 fetch('/api/menu')
   .then(function(r){return r.ok?r.json():null})
   .then(function(data){
