@@ -266,6 +266,8 @@ a.ghost{text-decoration:none;display:inline-block}
 .room-badge-dot{width:7px;height:7px;border-radius:50%;background:#4FBF6B;display:inline-block;animation:pulse 1.5s infinite}
 .room-badge small{background:var(--hot);color:#fff;padding:1px 4px;font-size:0.6rem;font-weight:700}
 .locked-tag{display:inline-block;background:#e2dfd2;color:#14110F;border:1px solid #14110F;padding:2px 6px;font-family:var(--mono);font-size:0.7rem;margin-top:4px}
+
+.top-room-badge{display:inline-flex;align-items:center;background:#14110F!important;color:#F6F3E8!important;border:1.5px solid var(--hot)!important;padding:2px 8px!important;font-family:var(--mono)!important;font-size:0.75rem!important;letter-spacing:0.06em!important;box-shadow:2px 2px 0 var(--hot)!important;user-select:none;text-decoration:none!important}
 </style>
 </head>
 <body>
@@ -481,11 +483,19 @@ var MEALS=[["morning","Morning","Breakfast to start the day."],["afternoon","Aft
 var CAN=false,view="view",mbody=document.getElementById("mbody");
 var urlParams=new URLSearchParams(window.location.search);
 var lockedRoom=(urlParams.get("room")||urlParams.get("r")||"").trim();
-if(lockedRoom){try{sessionStorage.setItem("najuka_locked_room",lockedRoom)}catch(e){}}
-else{try{lockedRoom=sessionStorage.getItem("najuka_locked_room")||""}catch(e){}}
+var isRoomLocked=Boolean(lockedRoom);
 
 function applyLockedRoom(){
  if(!lockedRoom)return;
+ var admTop=document.getElementById("admintop");
+ if(admTop){
+   admTop.textContent="ROOM "+lockedRoom;
+   admTop.classList.add("top-room-badge");
+   admTop.style.pointerEvents="none";
+   admTop.removeAttribute("href");
+ }
+ var staffLink=document.getElementById("staff");
+ if(staffLink) staffLink.style.display="none";
  var rb=document.getElementById("room-badge"),rt=document.getElementById("room-badge-text");
  if(rb&&rt){rt.textContent="ROOM "+lockedRoom;rb.hidden=false}
  var or=document.getElementById("oroom");
@@ -906,8 +916,8 @@ setInterval(fetchLiveOrders,3500);
 mbody.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="apass")authGo()});
 document.getElementById("mclose").addEventListener("click",function(){go("view")});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&view!=="view")go("view")});
-document.getElementById("admintop").addEventListener("click",function(e){e.preventDefault();document.getElementById("staff").click()});
-document.getElementById("staff").addEventListener("click",function(e){openMenu(e);
+document.getElementById("admintop").addEventListener("click",function(e){e.preventDefault();if(isRoomLocked)return;document.getElementById("staff").click()});
+document.getElementById("staff").addEventListener("click",function(e){if(isRoomLocked){e.preventDefault();return;}openMenu(e);
  if(!MENU.admin){if(CAN)go("setup");else go("view","No admin password has been set yet. The page owner must set it first.")}
  else if(unlocked())enterEdit();
  else go("login")});
