@@ -3,9 +3,10 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIs
 
 function formatOrder(row) {
   if (!row) return null;
+  const isFood = (!row.type || row.type === 'restaurant:najuka' || row.type === 'restaurant' || String(row.type).startsWith('restaurant'));
   return {
     id: row.id,
-    type: row.type || 'restaurant',
+    type: isFood ? 'restaurant:najuka' : 'hotel:najuka',
     room: String(row.room || ''),
     items: Array.isArray(row.items) ? row.items : [],
     total: Number(row.total || 0),

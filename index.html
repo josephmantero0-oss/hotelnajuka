@@ -496,8 +496,8 @@ function applyLockedRoom(){
  }
  var staffLink=document.getElementById("staff");
  if(staffLink) staffLink.style.display="none";
- var rb=document.getElementById("room-badge"),rt=document.getElementById("room-badge-text");
- if(rb&&rt){rt.textContent="ROOM "+lockedRoom;rb.hidden=false}
+ var rb=document.getElementById("room-badge");
+ if(rb) rb.hidden=true;
  var or=document.getElementById("oroom");
  if(or){or.value=lockedRoom;or.readOnly=true;or.style.background="#ece9dc";or.style.cursor="not-allowed";or.title="Room "+lockedRoom+" verified from link"}
  var sr=document.getElementById("sroom");
@@ -522,7 +522,7 @@ function updateBar(){
  var owa=document.getElementById("owa");if(owa)owa.href=ok?"https://wa.me/"+nm(MENU.kitchen)+"?text="+encodeURIComponent(msg):"#";
  var osms=document.getElementById("osms");if(osms)osms.href=ok?"sms:+"+nm(MENU.kitchen)+"?&body="+encodeURIComponent(msg):"#";
  if(up){up.hidden=!showUpi;if(showUpi)up.href="upi://pay?pa="+encodeURIComponent(MENU.upi)+"&pn="+encodeURIComponent(MENU.upiName||"Hotel Najuka")+"&am="+tot+"&cu=INR&tn="+encodeURIComponent("Room "+room+" order");}
- var ohint=document.getElementById("ohint");if(ohint)ohint.textContent=T(ok?"Tap Order via WhatsApp to send your order. The kitchen receives it instantly.":"Enter your room number to continue.")+(showUpi?" "+T("Payment is not checked automatically. Show the payment screen to the staff."):"");}
+ var ohint=document.getElementById("ohint");if(ohint)ohint.textContent=T(ok?"Tap Order via WhatsApp to send your order. The kitchen receives it instantly.":(!room?"Enter your room number to continue.":"Enter your name to continue."))+(showUpi?" "+T("Payment is not checked automatically. Show the payment screen to the staff."):"");}
 function renderDining(){document.querySelectorAll("#day li").forEach(function(li){var l=MENU.meals[li.dataset.p]||[],el=li.querySelector(".dl");
  if(!el){el=document.createElement("div");el.className="dl";li.appendChild(el)}
  el.innerHTML=l.length?l.map(function(i){return '<span'+(i.out?' class="gone"':'')+'>'+esc(i.name)+(i.price?' <b>'+esc(money(i.price))+'</b>':'')+'</span>'}).join(""):'<em>Today\'s dishes will be added soon.</em>'})}
@@ -557,8 +557,16 @@ function editHtml(){
  return h+'<div class="etool"><button type="button" class="mclose" id="esave">Save and publish</button><button type="button" class="ghost" id="ecancel">Cancel</button></div>'}
 function authHtml(setup){return '<div class="key" aria-hidden="true"><b>Najuka</b><span class="mono">STAFF ACCESS</span></div><h2>'+(setup?'Create the <em>admin password.</em>':'Staff <em>sign in.</em>')+'</h2><p class="note">'+(setup?'Choose a password with at least 10 characters. Staff will need it to change the menu.':'Enter the admin password to change the menu or send a message to guests.')+'</p><div class="er"><input type="password" id="apass" class="en" autocomplete="'+(setup?'new-password':'current-password')+'" placeholder="Password" aria-label="Password"><button type="button" class="mclose" id="ago">'+(setup?'Set password':'Sign in')+'</button></div>'}
 var adminTab="restaurant",kitchenFilter="active",liveOrders=[],soundEnabled=true,lastKnownOrderIds=new Set();
+function isFoodOrder(o){
+ if(!o) return false;
+ return (!o.type || o.type === "restaurant" || o.type === "restaurant:najuka");
+}
+function isHotelOrder(o){
+ if(!o) return false;
+ return (o.type === "hotel" || o.type === "hotel:najuka");
+}
 function playChime(){
- if(!soundEnabled || !unlocked() || isRoomLocked)return;
+ if(!soundEnabled || !unlocked() || isRoomLocked || view !== "edit")return;
  try{
   var A=window.AudioContext||window.webkitAudioContext;if(!A)return;
   var c=new A(),o=c.createOscillator(),g=c.createGain();
@@ -571,8 +579,8 @@ function playChime(){
  }catch(e){}
 }
 function adminDashboardHtml(){
- var restActive=liveOrders.filter(function(o){return (!o.type||o.type==="restaurant")&&o.status!=="delivered"&&o.status!=="rejected"}).length;
- var hotelActive=liveOrders.filter(function(o){return o.type==="hotel"&&o.status!=="completed"}).length;
+ var restActive=liveOrders.filter(function(o){return isFoodOrder(o)&&o.status!=="delivered"&&o.status!=="rejected"}).length;
+ var hotelActive=liveOrders.filter(function(o){return isHotelOrder(o)&&o.status!=="completed"}).length;
  var h='<div class="dnav" role="tablist">'
    +'<button type="button" class="dtab" data-tab="restaurant" aria-selected="'+(adminTab==="restaurant"?"true":"false")+'">🍳 Restaurant (Kitchen)'+(restActive?' <span style="background:var(--hot);color:#fff;border-radius:10px;padding:2px 7px;font-size:0.75rem;font-weight:700">'+restActive+'</span>':'')+'</button>'
    +'<button type="button" class="dtab" data-tab="hotel" aria-selected="'+(adminTab==="hotel"?"true":"false")+'">🛎️ Hotel (Front Desk)'+(hotelActive?' <span style="background:var(--sky);color:#14110F;border-radius:10px;padding:2px 7px;font-size:0.75rem;font-weight:700">'+hotelActive+'</span>':'')+'</button>'
@@ -590,15 +598,14 @@ function adminDashboardHtml(){
   }
   if(adminTab==="settings")return h+editHtml();
  if(adminTab==="restaurant"){
-  var actCount=liveOrders.filter(function(o){return (!o.type||o.type==="restaurant")&&o.status!=="delivered"&&o.status!=="rejected"}).length;
-  var histCount=liveOrders.filter(function(o){return (!o.type||o.type==="restaurant")&&(o.status==="delivered"||o.status==="rejected")}).length;
+  var actCount=liveOrders.filter(function(o){return isFoodOrder(o)&&o.status!=="delivered"&&o.status!=="rejected"}).length;
+  var histCount=liveOrders.filter(function(o){return isFoodOrder(o)&&(o.status==="delivered"||o.status==="rejected")}).length;
   h+='<div class="filter-bar">'
     +'<button type="button" class="fbtn" data-f="active" data-active="'+(kitchenFilter==="active"?"true":"false")+'">Active Orders ('+actCount+')</button>'
     +'<button type="button" class="fbtn" data-f="history" data-active="'+(kitchenFilter==="history"?"true":"false")+'">Order History ('+histCount+')</button>'
     +'</div>';
   var rList=liveOrders.filter(function(o){
-   var isRest=(!o.type||o.type==="restaurant");
-   if(!isRest)return false;
+   if(!isFoodOrder(o))return false;
    return kitchenFilter==="active"?(o.status!=="delivered"&&o.status!=="rejected"):(o.status==="delivered"||o.status==="rejected");
   });
   if(!rList.length){
@@ -636,7 +643,7 @@ function adminDashboardHtml(){
   return h;
  }
  if(adminTab==="hotel"){
-  var hList=liveOrders.filter(function(o){return o.type==="hotel"&&o.status!=="completed"});
+  var hList=liveOrders.filter(function(o){return isHotelOrder(o)&&o.status!=="completed"});
   if(!hList.length){
    h+='<div class="empty-box">No front desk service requests right now. Waiting for guests...</div>';
   }else{
@@ -893,11 +900,11 @@ function fetchLiveOrders(){
     }
    });
    liveOrders=res.orders;
-   if(hasNew && unlocked() && !isRoomLocked && soundEnabled)playChime();
+   if(hasNew && unlocked() && !isRoomLocked && view==="edit" && soundEnabled)playChime();
    if(view==="edit"){
     if(adminTab==="settings"){
-      var rPend = liveOrders.filter(function(o){return (o.type==='restaurant'||!o.type)&&o.status==='pending'}).length;
-      var hPend = liveOrders.filter(function(o){return o.type==='hotel'&&o.status==='pending'}).length;
+      var rPend = liveOrders.filter(function(o){return isFoodOrder(o)&&o.status==='pending'}).length;
+      var hPend = liveOrders.filter(function(o){return isHotelOrder(o)&&o.status==='pending'}).length;
       var rBadge = document.querySelector('.dtab[data-tab="restaurant"] .dcount');
       if(rBadge){rBadge.textContent=rPend;rBadge.style.display=rPend>0?'':'none'}
       var hBadge = document.querySelector('.dtab[data-tab="hotel"] .dcount');
