@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
   try {
     // GET: Fetch live orders
     if (req.method === 'GET') {
-      const endpoint = `${SUPABASE_URL}/rest/v1/orders?type=neq.config&select=*&order=created_at.desc&limit=200`;
+      const endpoint = `${SUPABASE_URL}/rest/v1/orders?or=(type.eq.restaurant:najuka,type.eq.hotel:najuka)&select=*&order=created_at.desc&limit=200`;
       const response = await fetch(endpoint, {
         headers: getHeaders(),
         cache: 'no-store'
@@ -85,7 +85,7 @@ module.exports = async function handler(req, res) {
 
         const newRow = {
           id: orderId,
-          type: type || 'restaurant',
+          type: (type === 'hotel' || type === 'hotel:najuka') ? 'hotel:najuka' : 'restaurant:najuka',
           room: String(room).trim(),
           items: Array.isArray(items) ? items : [],
           total: Number(total || 0),

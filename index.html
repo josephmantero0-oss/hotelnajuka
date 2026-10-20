@@ -558,7 +558,7 @@ function editHtml(){
 function authHtml(setup){return '<div class="key" aria-hidden="true"><b>Najuka</b><span class="mono">STAFF ACCESS</span></div><h2>'+(setup?'Create the <em>admin password.</em>':'Staff <em>sign in.</em>')+'</h2><p class="note">'+(setup?'Choose a password with at least 10 characters. Staff will need it to change the menu.':'Enter the admin password to change the menu or send a message to guests.')+'</p><div class="er"><input type="password" id="apass" class="en" autocomplete="'+(setup?'new-password':'current-password')+'" placeholder="Password" aria-label="Password"><button type="button" class="mclose" id="ago">'+(setup?'Set password':'Sign in')+'</button></div>'}
 var adminTab="restaurant",kitchenFilter="active",liveOrders=[],soundEnabled=true,lastKnownOrderIds=new Set();
 function playChime(){
- if(!soundEnabled)return;
+ if(!soundEnabled || !unlocked() || isRoomLocked)return;
  try{
   var A=window.AudioContext||window.webkitAudioContext;if(!A)return;
   var c=new A(),o=c.createOscillator(),g=c.createGain();
@@ -814,7 +814,7 @@ function submitOrderDirect(rm,items,tot,note,cb){
  fetch('/api/orders',{
   method:'POST',
   headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({action:'create',type:'restaurant',room:rm,items:items,total:tot,note:note})
+  body:JSON.stringify({action:'create',type:'restaurant:najuka',room:rm,items:items,total:tot,note:note})
  })
  .then(function(r){return r.json()})
  .then(function(res){
@@ -893,7 +893,7 @@ function fetchLiveOrders(){
     }
    });
    liveOrders=res.orders;
-   if(hasNew)playChime();
+   if(hasNew && unlocked() && !isRoomLocked && soundEnabled)playChime();
    if(view==="edit"){
     if(adminTab==="settings"){
       var rPend = liveOrders.filter(function(o){return (o.type==='restaurant'||!o.type)&&o.status==='pending'}).length;
@@ -979,7 +979,7 @@ document.getElementById("services").addEventListener("click",function(e){
  fetch('/api/orders',{
   method:'POST',
   headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({action:'create',type:'hotel',room:roomFull,serviceTitle:title,details:det})
+  body:JSON.stringify({action:'create',type:'hotel:najuka',room:roomFull,serviceTitle:title,details:det})
  })
  .then(function(r){return r.json()})
  .then(function(res){
