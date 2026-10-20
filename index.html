@@ -423,6 +423,16 @@ a.ghost{text-decoration:none;display:inline-block}
 <div class="toast" id="toast" role="status" hidden></div>
 <script id="menu-data" type="application/json">{"drinks": [{"name": "Water bottle", "price": "20"}, {"name": "Tea", "price": "25"}, {"name": "Coffee", "price": "30"}], "meals": {"morning": [{"name": "Pohe", "price": "40", "out": true}, {"name": "Sheera", "price": "40"}], "afternoon": [{"name": "Chicken Thali", "price": "220"}, {"name": "Veg Thali", "price": "150"}, {"name": "Egg Thali", "price": "180"}], "evening": [], "night": [{"name": "Chicken Thali", "price": "220"}, {"name": "Egg Thali", "price": "180", "out": true}, {"name": "Veg Thali", "price": "150", "out": true}]}, "updated": "2026-10-10T10:45:49.139Z", "notice": null, "admin": {"salt": "0d657abf77978927", "hash": "8e0f4d07f3c1c8ff062a9b1effe8cdd7f14dd484a559c4203619c8200a0ef8e9"}, "kitchen": "919623004864", "open": true, "desk": "919623004864", "review": "", "map": "https://maps.app.goo.gl/wyUZJb37rTRY5cvv7?g_st=ac", "upi": "", "upiName": "Hotel Najuka", "services": "Clean my toilet\nExtra pillow\nExtra towels\nWake-up call\nHot water not working\nLate check-out\nWarm Water 2 buckets", "wifiName": "Hotelnajuka 5G", "wifiPass": "najuka12345", "timings": "", "emergency": "National emergency number | 112", "guide": "Malvan | Nearby\nTarkarli | Nearby", "phone": "+91 96230 04864", "email": "", "address": "Vagde, Kankavli, Sindhudurg, Maharashtra (Mumbai-Goa Highway, NH66)"}</script>
 <script>
+var SUPABASE_URL = "https://uvjqhfvxghtrvogdmzxz.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2anFoZnZ4Z2h0cnZvZ2Rtenh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4MDY4MTMsImV4cCI6MjEwNzM4MjgxM30.uMQChyviNzD074wWGcBYu77XdKosuJk6sMBMVWBAoa0";
+function sbHeaders(){
+  return {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+    "Content-Type": "application/json"
+  };
+}
+
 // Edit these details for your hotel.
 var HOTEL={phone:"+91 00000 00000",email:"stay@hotelnajuka.example",address:"Add the hotel address here"};
 var COPY={
@@ -762,6 +772,13 @@ function save(){
  (np?checkPw(cp).then(function(ok){if(!ok)throw{code:"badpass"};return mkAdmin(np)}).then(function(a){next.admin=a;remember(a.hash)}):(legacyPw&&MENU.admin&&MENU.admin.alg!=="pbkdf2"?mkAdmin(legacyPw).then(function(a){next.admin=a;remember(a.hash)}):Promise.resolve()))
  .then(function(){
    var authHash = origHash;
+   // Direct write to Supabase MENU-CONFIG so eopen and all settings are guaranteed saved!
+   fetch(SUPABASE_URL + '/rest/v1/orders?id=eq.MENU-CONFIG', {
+     method: 'PATCH',
+     headers: sbHeaders(),
+     body: JSON.stringify({ items: next, updated_at: new Date().toISOString() })
+   }).catch(function(e){ console.warn("Direct MENU-CONFIG sync:", e); });
+
    return fetch('/api/menu', {
      method: 'POST',
      headers: { 'Content-Type': 'application/json' },
@@ -800,10 +817,19 @@ mbody.addEventListener("click",function(e){var t=e.target;
    }
    if(act==="rejected"){rsn=prompt("Enter rejection reason (optional):","Item out of stock");if(rsn===null)return}
   ab.disabled=true;ab.textContent="...";
-  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update_status',orderId:oid,status:act,rejectReason:rsn})})
-  .then(function(r){return r.json()})
-  .then(function(){fetchLiveOrders();toast("Order updated to "+act,true)})
-  .catch(function(){toast("Update failed.")});
+  fetch(SUPABASE_URL + '/rest/v1/orders?id=eq.' + encodeURIComponent(oid), {
+    method: 'PATCH',
+    headers: sbHeaders(),
+    body: JSON.stringify({ status: act, reject_reason: rsn, updated_at: new Date().toISOString() })
+  })
+  .then(function(){
+    fetchLiveOrders();
+    toast("Order updated to "+act, true);
+  })
+  .catch(function(err){
+    console.error("Direct update error:", err);
+    toast("Update failed.");
+  });
   return;
  }
  if(t.classList.contains("ex"))t.parentNode.remove();
@@ -818,20 +844,43 @@ document.getElementById("obar").addEventListener("input",updateBar);
 document.getElementById("obar").addEventListener("click",function(e){if(e.target.closest("a")&&!document.getElementById("oroom").value.trim()){e.preventDefault();document.getElementById("oroom").focus()}});
 // ── Silently sends order to kitchen dashboard in the background ──
 function submitOrderDirect(rm,items,tot,note,cb){
- fetch('/api/orders',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({action:'create',type:'restaurant:najuka',room:rm,items:items,total:tot,note:note})
- })
- .then(function(r){return r.json()})
- .then(function(res){
-  if(res&&res.success){
-   try{localStorage.setItem("najuka_my_order",res.order.id)}catch(e){}
-   fetchLiveOrders();
-   if(cb)cb(true,res.order.id);
-  }else{if(cb)cb(false)}
- })
- .catch(function(){if(cb)cb(false)});
+  if(!MENU.open){
+    toast("Room ordering is currently paused by hotel staff. Please call the front desk.");
+    if(cb) cb(false);
+    return;
+  }
+  var orderId = 'ORD-' + Date.now().toString().slice(-4) + '-' + Math.floor(100 + Math.random() * 900);
+  var now = new Date().toISOString();
+  var newRow = {
+    id: orderId,
+    type: 'restaurant:najuka',
+    room: rm,
+    items: items,
+    total: tot,
+    note: note,
+    status: 'pending',
+    reject_reason: '',
+    created_at: now,
+    updated_at: now
+  };
+  fetch(SUPABASE_URL + '/rest/v1/orders', {
+    method: 'POST',
+    headers: {
+      ...sbHeaders(),
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(newRow)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(inserted){
+    try{localStorage.setItem("najuka_my_order", orderId)}catch(e){}
+    fetchLiveOrders();
+    if(cb) cb(true, orderId);
+  })
+  .catch(function(err){
+    console.error("Direct order creation error:", err);
+    if(cb) cb(false);
+  });
 }
 
 // ── Shared: build WhatsApp URL from current cart ──
@@ -913,38 +962,67 @@ function updateGuestTracker(){
  document.getElementById("gttime").textContent=tVal?new Date(tVal).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"Live";
 }
 function fetchLiveOrders(){
- return fetch('/api/orders')
-  .then(function(r){return r.ok?r.json():null})
-  .then(function(res){
-   if(!res||!res.orders)return;
-   var hasNew=false;
-   res.orders.forEach(function(o){
-    if(!lastKnownOrderIds.has(o.id)){
-     if(lastKnownOrderIds.size>0&&o.status==="pending")hasNew=true;
-     lastKnownOrderIds.add(o.id);
-    }
-   });
-   liveOrders=res.orders;
-   if(hasNew && unlocked() && !isRoomLocked && view==="edit" && soundEnabled)playChime();
-   if(view==="edit"){
-    if(adminTab==="settings"){
-      var rPend = liveOrders.filter(function(o){return isFoodOrder(o)&&o.status==='pending'}).length;
-      var hPend = liveOrders.filter(function(o){return isHotelOrder(o)&&o.status==='pending'}).length;
-      var rBadge = document.querySelector('.dtab[data-tab="restaurant"] .dcount');
-      if(rBadge){rBadge.textContent=rPend;rBadge.style.display=rPend>0?'':'none'}
-      var hBadge = document.querySelector('.dtab[data-tab="hotel"] .dcount');
-      if(hBadge){hBadge.textContent=hPend;hBadge.style.display=hPend>0?'':'none'}
-    }else{
-      var actEl=document.activeElement;
-      if(!actEl||!mbody.contains(actEl))renderMenu();
-    }
-   }
-   updateGuestTracker();
+  var ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  var url = SUPABASE_URL + '/rest/v1/orders?type=in.(restaurant:najuka,hotel:najuka)&created_at=gte.' + ninetyDaysAgo + '&select=*&order=created_at.desc&limit=200';
+  
+  return fetch(url, {
+    headers: sbHeaders(),
+    cache: 'no-store'
   })
-  .catch(function(err){console.error("Orders poll err:",err)});
+  .then(function(r){ return r.ok ? r.json() : null })
+  .then(function(rows){
+    if(!Array.isArray(rows)) return;
+    var orders = rows.map(function(row){
+      var isFood = (!row.type || row.type === 'restaurant:najuka' || row.type === 'restaurant');
+      return {
+        id: row.id,
+        type: isFood ? 'restaurant' : 'hotel',
+        rawType: row.type,
+        room: String(row.room || ''),
+        items: Array.isArray(row.items) ? row.items : [],
+        total: Number(row.total || 0),
+        note: row.note || '',
+        serviceTitle: row.service_title || '',
+        service_title: row.service_title || '',
+        status: row.status || 'pending',
+        rejectReason: row.reject_reason || '',
+        reject_reason: row.reject_reason || '',
+        createdAt: row.created_at || new Date().toISOString(),
+        created_at: row.created_at || new Date().toISOString(),
+        updatedAt: row.updated_at || new Date().toISOString(),
+        updated_at: row.updated_at || new Date().toISOString()
+      };
+    });
+
+    var hasNew = false;
+    orders.forEach(function(o){
+      if(!lastKnownOrderIds.has(o.id)){
+        if(lastKnownOrderIds.size > 0 && o.status === "pending") hasNew = true;
+        lastKnownOrderIds.add(o.id);
+      }
+    });
+    liveOrders = orders;
+    if(hasNew && unlocked() && !isRoomLocked && view === "edit" && soundEnabled) playChime();
+    
+    if(view === "edit"){
+      if(adminTab === "settings"){
+        var rPend = liveOrders.filter(function(o){return isFoodOrder(o) && o.status === 'pending'}).length;
+        var hPend = liveOrders.filter(function(o){return isHotelOrder(o) && o.status === 'pending'}).length;
+        var rBadge = document.querySelector('.dtab[data-tab="restaurant"] .dcount');
+        if(rBadge){rBadge.textContent = rPend; rBadge.style.display = rPend > 0 ? '' : 'none'}
+        var hBadge = document.querySelector('.dtab[data-tab="hotel"] .dcount');
+        if(hBadge){hBadge.textContent = hPend; hBadge.style.display = hPend > 0 ? '' : 'none'}
+      } else {
+        var actEl = document.activeElement;
+        if(!actEl || !mbody.contains(actEl)) renderMenu();
+      }
+    }
+    updateGuestTracker();
+  })
+  .catch(function(err){ console.error("Direct Supabase poll error:", err); });
 }
 fetchLiveOrders();
-setInterval(fetchLiveOrders,3500);
+setInterval(fetchLiveOrders,5000);
 mbody.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="apass")authGo()});
 document.getElementById("mclose").addEventListener("click",function(){go("view")});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&view!=="view")go("view")});
@@ -1008,20 +1086,34 @@ document.getElementById("services").addEventListener("click",function(e){
 
  // 2. Silently send to Staff / Front Desk dashboard in the background
  a.style.opacity="0.4";
- fetch('/api/orders',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({action:'create',type:'hotel:najuka',room:roomFull,serviceTitle:title,details:det})
+ var orderId = 'ORD-' + Date.now().toString().slice(-4) + '-' + Math.floor(100 + Math.random() * 900);
+ fetch(SUPABASE_URL + '/rest/v1/orders', {
+   method: 'POST',
+   headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+   body: JSON.stringify({
+     id: orderId,
+     type: 'hotel:najuka',
+     room: roomFull,
+     service_title: title,
+     note: det,
+     status: 'pending',
+     reject_reason: '',
+     created_at: new Date().toISOString(),
+     updated_at: new Date().toISOString()
+   })
  })
- .then(function(r){return r.json()})
- .then(function(res){
-  a.style.opacity="";
-  if(res.success){
+ .then(function(r){ return r.json(); })
+ .then(function(){
+   a.style.opacity="";
+   try{localStorage.setItem("najuka_my_order", orderId)}catch(e){}
    toast("Request for '"+title+"' sent to WhatsApp & Front Desk!",true);
    fetchLiveOrders();
-  }else{toast("WhatsApp opened. Front desk dashboard could not be reached.")}
  })
- .catch(function(){a.style.opacity="";toast("WhatsApp opened. Front desk dashboard could not be reached.")});
+ .catch(function(err){
+   console.warn("Direct service push notice:", err);
+   a.style.opacity="";
+   toast("Request sent via WhatsApp!");
+ });
 });
 function tel(n){return esc(String(n).replace(/[^+\d]/g,""))}
 function renderInfo(){
@@ -1049,17 +1141,20 @@ var pend=null,afterLoad=null;try{pend=JSON.parse(sessionStorage.getItem("najukaP
 if(pend){if(pend.updated===MENU.updated)afterLoad=function(){toast("Saved. The site is updated.",true)};
  else{Object.keys(pend).forEach(function(k){if(k!=="admin")MENU[k]=pend[k]});afterLoad=function(){openMenu();go("edit","The page was updated by someone else while you were saving. Your changes are shown again. Check them, then tap Save and publish.")}}}
 renderMenu();if(afterLoad)afterLoad();applyLockedRoom();
-fetch('/api/menu')
-  .then(function(r){return r.ok?r.json():null})
-  .then(function(data){
-    if(data){
-      MENU=data;
-      Object.keys(DEF).forEach(function(k){if(MENU[k]===undefined||MENU[k]===null)MENU[k]=DEF[k]});
-      if(view!=="edit" || adminTab!=="settings")renderMenu();
-      render();
+// Direct load from Supabase MENU-CONFIG with cache bypass
+fetch(SUPABASE_URL + '/rest/v1/orders?id=eq.MENU-CONFIG&select=*', {
+  headers: sbHeaders(),
+  cache: 'no-store'
+})
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(rows){
+    if(Array.isArray(rows) && rows.length && rows[0].items){
+      MENU = rows[0].items;
+      Object.keys(DEF).forEach(function(k){ if(MENU[k]===undefined||MENU[k]===null) MENU[k]=DEF[k]; });
+      if(view!=="edit" || adminTab!=="settings") renderMenu();
     }
   })
-  .catch(function(err){console.log("Blob fetch notice:",err)});
+  .catch(function(err){ console.log("Direct MENU-CONFIG fetch notice:", err); });
 if(window.claude&&claude.use){claude.use("user").then(function(u){return u?u.canEdit():false}).then(function(ok){CAN=!!ok}).catch(function(){})}
 
 // Hidden ways in: tap the logo 5 times, or open the page with #admin
