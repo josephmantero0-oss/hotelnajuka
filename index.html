@@ -1011,7 +1011,10 @@ function updateGuestTracker(){
  var rBox = document.getElementById("gtreview");
  if(rBox){
    var isDelivered = (st === "delivered" || st === "completed");
-   rBox.hidden = !isDelivered || !MENU.review;
+   var isTyping = (document.activeElement && document.activeElement.id === "gtrfbtxt");
+   if(!isTyping){
+     rBox.hidden = !isDelivered || !MENU.review;
+   }
  }
 }
 function fetchLiveOrders(){
