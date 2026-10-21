@@ -419,6 +419,7 @@ a.ghost{text-decoration:none;display:inline-block}
         <div id="gtrfb" style="display:none;margin-top:8px">
           <textarea id="gtrfbtxt" placeholder="Tell us how we can improve..." rows="2" style="width:100%;font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box"></textarea>
           <button type="button" id="gtrfbsubmit" class="btn" style="margin-top:6px;padding:4px 10px;font-size:.75rem">Submit Feedback</button>
+          <button type="button" id="gtrfbcancel" class="btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:.75rem;background:#eee;color:#333">Cancel</button>
         </div>
       </div>
     </div>
@@ -887,6 +888,14 @@ document.addEventListener("click", function(e){
     }
     toast("Thank you for your feedback!", true);
   }
+  if(e.target && e.target.id === "gtrfbcancel"){
+    var fb = document.getElementById("gtrfb");
+    if(fb) fb.style.display = "none";
+    var stars = document.getElementById("gtrstars");
+    if(stars) stars.style.opacity = "1";
+    var sub = document.getElementById("gtrsub");
+    if(sub) sub.textContent = "How was your order and service?";
+  }
 });
 document.getElementById("obar").addEventListener("input",updateBar);
 document.getElementById("obar").addEventListener("click",function(e){if(e.target.closest("a")&&!document.getElementById("oroom").value.trim()){e.preventDefault();document.getElementById("oroom").focus()}});
@@ -1011,8 +1020,10 @@ function updateGuestTracker(){
  var rBox = document.getElementById("gtreview");
  if(rBox){
    var isDelivered = (st === "delivered" || st === "completed");
+   var fbEl = document.getElementById("gtrfb");
+   var fbOpen = fbEl && fbEl.style.display === "block";
    var isTyping = (document.activeElement && document.activeElement.id === "gtrfbtxt");
-   if(!isTyping){
+   if(!isTyping && !fbOpen){
      rBox.hidden = !isDelivered || !MENU.review;
    }
  }
