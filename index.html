@@ -406,6 +406,21 @@ a.ghost{text-decoration:none;display:inline-block}
     <div class="guest-tracker" id="guesttracker" hidden>
       <div><span class="mono">ROOM ORDER</span> <b id="gtnum">#ORD-101</b>: <span class="gt-stat" id="gtstat">Waiting for kitchen...</span></div>
       <div style="display:flex;align-items:center;gap:6px"><span class="mono" id="gttime">Live</span><button type="button" id="gtdismiss" style="background:none;border:none;color:#555;font-size:1.3rem;line-height:1;cursor:pointer;padding:0 2px" aria-label="Dismiss">×</button></div>
+      <div id="gtreview" style="width:100%;margin-top:10px;padding-top:10px;border-top:1px dashed #ccc;text-align:center" hidden>
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:2px">⭐ Rate your experience</div>
+        <div id="gtrsub" style="font-size:.72rem;color:#555;margin-bottom:6px">How was your order and service?</div>
+        <div id="gtrstars" style="display:flex;justify-content:center;gap:6px">
+          <button type="button" class="nstar" data-score="1" style="background:none;border:none;font-size:1.5rem;color:#f39c12;cursor:pointer">★</button>
+          <button type="button" class="nstar" data-score="2" style="background:none;border:none;font-size:1.5rem;color:#f39c12;cursor:pointer">★</button>
+          <button type="button" class="nstar" data-score="3" style="background:none;border:none;font-size:1.5rem;color:#f39c12;cursor:pointer">★</button>
+          <button type="button" class="nstar" data-score="4" style="background:none;border:none;font-size:1.5rem;color:#f39c12;cursor:pointer">★</button>
+          <button type="button" class="nstar" data-score="5" style="background:none;border:none;font-size:1.5rem;color:#f39c12;cursor:pointer">★</button>
+        </div>
+        <div id="gtrfb" style="display:none;margin-top:8px">
+          <textarea id="gtrfbtxt" placeholder="Tell us how we can improve..." rows="2" style="width:100%;font-size:.8rem;padding:6px;border-radius:4px;border:1px solid #ddd;box-sizing:border-box"></textarea>
+          <button type="button" id="gtrfbsubmit" class="btn" style="margin-top:6px;padding:4px 10px;font-size:.75rem">Submit Feedback</button>
+        </div>
+      </div>
     </div>
     <div id="mbody"></div>
     <div class="free"><b>Free, just ask</b>Extra towels, soap and other toiletries cost nothing.</div>
@@ -839,7 +854,40 @@ mbody.addEventListener("click",function(e){var t=e.target;
  else if(t.classList.contains("qp")||t.classList.contains("qm")){var box=t.parentNode,id=box.dataset.id,it=getItem(id),c=cart[id]||(cart[id]={name:it.name,price:it.price,q:0});
   c.q=Math.max(0,c.q+(t.classList.contains("qp")?1:-1));box.querySelector("output").textContent=c.q;if(!c.q)delete cart[id];updateBar()}
  else if(t.id==="ago")authGo()});
-document.addEventListener("click",function(e){if(e.target&&e.target.id==="gtdismiss"){try{localStorage.removeItem("najuka_my_order")}catch(x){}var el=document.getElementById("guesttracker");if(el)el.hidden=true;}});
+document.addEventListener("click",function(e){if(e.target&&e.target.id==="gtdismiss"){try{localStorage.removeItem("najuka_my_order")}catch(x){}var el=document.getElementById("guesttracker");if(el)el.hidden=true;}};
+document.addEventListener("click", function(e){
+  var starBtn = e.target.closest(".nstar");
+  if(starBtn){
+    var sc = +(starBtn.dataset.score || 5);
+    var rBox = document.getElementById("gtreview");
+    if(sc >= 4){
+      if(rBox){
+        rBox.innerHTML = '<div style="color:#27ae60;font-weight:700;font-size:.85rem;margin-bottom:4px">🎉 Thank you for ' + sc + ' stars!</div>'
+          + '<div style="font-size:.75rem;color:#555;margin-bottom:8px">Would you take a moment to leave a review on Google Maps? It means a lot to our team!</div>'
+          + '<a class="btn" style="display:inline-block;padding:6px 14px;text-decoration:none" href="' + esc(MENU.review) + '" target="_blank" rel="noopener noreferrer">⭐ Share on Google Review</a>';
+      }
+      window.open(MENU.review, "_blank", "noopener,noreferrer");
+      toast("Opening Google Review...", true);
+    } else {
+      if(rBox){
+        var fb = document.getElementById("gtrfb");
+        if(fb) fb.style.display = "block";
+        var stars = document.getElementById("gtrstars");
+        if(stars) stars.style.opacity = "0.4";
+        var sub = document.getElementById("gtrsub");
+        if(sub) sub.textContent = "We are sorry! Please let us know how we can make it right:";
+      }
+    }
+    return;
+  }
+  if(e.target && e.target.id === "gtrfbsubmit"){
+    var rBox = document.getElementById("gtreview");
+    if(rBox){
+      rBox.innerHTML = '<div style="color:#27ae60;font-weight:700;font-size:.85rem">🙏 Thank you! Your feedback has been noted directly for management.</div>';
+    }
+    toast("Thank you for your feedback!", true);
+  }
+});
 document.getElementById("obar").addEventListener("input",updateBar);
 document.getElementById("obar").addEventListener("click",function(e){if(e.target.closest("a")&&!document.getElementById("oroom").value.trim()){e.preventDefault();document.getElementById("oroom").focus()}});
 // ── Silently sends order to kitchen dashboard in the background ──
@@ -960,6 +1008,11 @@ function updateGuestTracker(){
  document.getElementById("gtstat").textContent=msg;
  var tVal=ord.updatedAt||ord.updated_at||ord.createdAt||ord.created_at;
  document.getElementById("gttime").textContent=tVal?new Date(tVal).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"Live";
+ var rBox = document.getElementById("gtreview");
+ if(rBox){
+   var isDelivered = (st === "delivered" || st === "completed");
+   rBox.hidden = !isDelivered || !MENU.review;
+ }
 }
 function fetchLiveOrders(){
   var ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
