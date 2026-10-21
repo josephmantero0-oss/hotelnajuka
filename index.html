@@ -887,6 +887,17 @@ document.addEventListener("click", function(e){
       rBox.innerHTML = '<div style="color:#27ae60;font-weight:700;font-size:.85rem">🙏 Thank you! Your feedback has been noted directly for management.</div>';
     }
     toast("Thank you for your feedback!", true);
+    // Save feedback to Supabase
+    var fbTxt = (document.getElementById("gtrfbtxt")||{}).value || "";
+    var fbOid = localStorage.getItem("najuka_my_order");
+    var fbStar = parseInt((document.querySelector(".nstar[aria-pressed='true']")||{}).dataset && document.querySelector(".nstar[aria-pressed='true']").dataset.score) || null;
+    if(fbTxt.trim() && fbOid){
+      fetch(SUPABASE_URL + "/rest/v1/orders?id=eq." + encodeURIComponent(fbOid), {
+        method: "PATCH",
+        headers: Object.assign({}, sbHeaders(), {"Content-Type": "application/json", "Prefer": "return=minimal"}),
+        body: JSON.stringify({ guest_feedback: fbTxt.trim(), guest_star: fbStar })
+      }).catch(function(e){ console.warn("Feedback save:", e); });
+    }
   }
   if(e.target && e.target.id === "gtrfbcancel"){
     var fb = document.getElementById("gtrfb");
@@ -1089,7 +1100,7 @@ function fetchLiveOrders(){
   .catch(function(err){ console.error("Direct Supabase poll error:", err); });
 }
 fetchLiveOrders();
-setInterval(fetchLiveOrders,5000);
+setInterval(fetchLiveOrders, 60000); // 60s for guest-side; admin can reload
 mbody.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="apass")authGo()});
 document.getElementById("mclose").addEventListener("click",function(){go("view")});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&view!=="view")go("view")});
