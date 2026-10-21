@@ -854,7 +854,7 @@ mbody.addEventListener("click",function(e){var t=e.target;
  else if(t.classList.contains("qp")||t.classList.contains("qm")){var box=t.parentNode,id=box.dataset.id,it=getItem(id),c=cart[id]||(cart[id]={name:it.name,price:it.price,q:0});
   c.q=Math.max(0,c.q+(t.classList.contains("qp")?1:-1));box.querySelector("output").textContent=c.q;if(!c.q)delete cart[id];updateBar()}
  else if(t.id==="ago")authGo()});
-document.addEventListener("click",function(e){if(e.target&&e.target.id==="gtdismiss"){try{localStorage.removeItem("najuka_my_order")}catch(x){}var el=document.getElementById("guesttracker");if(el)el.hidden=true;}};
+document.addEventListener("click",function(e){if(e.target&&e.target.id==="gtdismiss"){try{localStorage.removeItem("najuka_my_order")}catch(x){}var el=document.getElementById("guesttracker");if(el)el.hidden=true;}});
 document.addEventListener("click", function(e){
   var starBtn = e.target.closest(".nstar");
   if(starBtn){
