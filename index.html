@@ -296,6 +296,127 @@ a.ghost{text-decoration:none;display:inline-block}
 .trb-star-btn{background:none;border:none;font-size:1.6rem;color:#f39c12;cursor:pointer;padding:0 2px;line-height:1;transition:transform .15s}
 .trb-star-btn:hover{transform:scale(1.2)}
 
+
+/* HIGH CONTRAST DARK TEXT FOR ORDER TRACKING */
+.track-order-card {
+  background: #ffffff !important;
+  color: #14110F !important;
+  border: 1.5px solid #d5c8b8 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+}
+.track-order-card * {
+  color-scheme: light;
+}
+.toc-head {
+  border-bottom: 1.5px solid #ede5d8 !important;
+}
+.toc-title {
+  color: #14110F !important;
+  font-weight: 800 !important;
+  font-size: 1rem !important;
+}
+.toc-meta {
+  color: #52473f !important;
+  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+}
+.toc-items {
+  list-style: none !important;
+  margin: 10px 0 !important;
+  padding: 0 !important;
+  border-bottom: 1px dashed #d5c8b8 !important;
+}
+.toc-items li, .toc-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 6px 0 !important;
+  font-size: 0.92rem !important;
+  color: #14110F !important;
+  font-weight: 600 !important;
+  border-bottom: 1px dashed #f0eae1 !important;
+}
+.toc-items li:last-child, .toc-item:last-child {
+  border-bottom: none !important;
+}
+.toc-items li span, .toc-item span {
+  color: #14110F !important;
+  font-weight: 600 !important;
+}
+.toc-items li b, .toc-item b {
+  color: #14110F !important;
+  font-weight: 800 !important;
+}
+.toc-total {
+  display: flex !important;
+  justify-content: space-between !important;
+  font-weight: 800 !important;
+  font-size: 1rem !important;
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 2px solid #14110F !important;
+  color: #14110F !important;
+}
+.toc-total span, .toc-total b {
+  color: #14110F !important;
+  font-weight: 800 !important;
+}
+.ts-label {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  color: #555555 !important;
+  margin-top: 4px !important;
+}
+.ts-step.done .ts-label {
+  color: #1e7e34 !important;
+  font-weight: 800 !important;
+}
+.ts-step.active .ts-label {
+  color: #b33927 !important;
+  font-weight: 800 !important;
+}
+.ts-step.rejected .ts-label {
+  color: #c0392b !important;
+  font-weight: 800 !important;
+}
+.toc-review-box {
+  background: #fdfaf4 !important;
+  border: 1.5px dashed #c4b5a3 !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+  margin-top: 14px !important;
+  text-align: center !important;
+  color: #14110F !important;
+}
+.trb-title {
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  color: #14110F !important;
+  margin-bottom: 4px !important;
+}
+.trb-sub {
+  font-size: 0.78rem !important;
+  color: #555555 !important;
+  margin-bottom: 8px !important;
+}
+.toc-note {
+  background: #fff8e1 !important;
+  border-left: 3px solid #f39c12 !important;
+  color: #5d4037 !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  padding: 8px 10px !important;
+  border-radius: 4px !important;
+  margin: 8px 0 !important;
+}
+.empty-track h3 {
+  color: #14110F !important;
+  font-weight: 800 !important;
+}
+.empty-track p {
+  color: #555555 !important;
+}
+
 </style>
 </head>
 <body>
@@ -1390,8 +1511,8 @@ function renderNajukaTrackOrders(){
         var showFb = (rs && rs.status === 'feedback_open');
         var curScore = (rs && rs.score) || 5;
         revHtml = '<div class="toc-review-box" id="revbox_' + esc(o.id) + '">'
-          + '<div class="trb-title">⭐ Rate your experience</div>'
-          + '<div style="font-size:.75rem;color:#666;margin-bottom:8px">How was your order and service?</div>'
+          + '<div class="trb-title" style="color:#14110F!important;font-weight:800;font-size:0.95rem">⭐ Rate your experience</div>'
+          + '<div style="font-size:.78rem;color:#555!important;font-weight:600;margin-bottom:8px">How was your order and service?</div>'
           + '<div class="trb-stars" data-id="' + esc(o.id) + '">'
           + [1,2,3,4,5].map(function(s){
               return '<button type="button" class="trb-star-btn nj-rate-btn" data-score="' + s + '" data-id="' + esc(o.id) + '" aria-label="' + s + ' stars">★</button>';
@@ -1412,18 +1533,18 @@ function renderNajukaTrackOrders(){
     return '<div class="track-order-card" id="toc_' + esc(o.id) + '">'
       + '<div class="toc-head">'
       + '<div>'
-      + '<div class="toc-title">' + (isFood ? '🍽️ Food Order' : '🛎️ Room Service') + ' (Room ' + esc(o.room) + ')</div>'
-      + '<div class="toc-meta">#' + esc(o.id) + ' • ' + timeStr + '</div>'
+      + '<div class="toc-title" style="color:#14110F!important;font-weight:800;font-size:1rem">' + (isFood ? '🍽️ Food Order' : '🛎️ Room Service') + ' (Room ' + esc(o.room) + ')</div>'
+      + '<div class="toc-meta" style="color:#52473f!important;font-weight:600;font-size:0.78rem">#' + esc(o.id) + ' • ' + timeStr + '</div>'
       + '</div>'
       + '<button type="button" class="nj-dismiss-btn" data-id="' + esc(o.id) + '" style="background:none;border:none;font-size:1.2rem;color:#999;cursor:pointer;padding:0 4px" aria-label="Dismiss">✕</button>'
       + '</div>'
       + (isFood ? (
         '<ul class="toc-items">'
         + (o.items || []).map(function(it){
-            return '<li><span>' + esc(it.name) + ' x ' + it.q + '</span><b>' + esc(money(it.price ? (it.price * it.q) : 0)) + '</b></li>';
+            return '<li style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #ede5d8;color:#14110F!important;font-weight:600;font-size:0.92rem"><span style="color:#14110F!important;font-weight:600">' + esc(it.name) + ' × ' + it.q + '</span><b style="color:#14110F!important;font-weight:800">' + esc(money(it.price ? (it.price * it.q) : 0)) + '</b></li>';
           }).join('')
         + '</ul>'
-        + (o.total ? '<div style="text-align:right;font-weight:700;font-size:.85rem;border-top:1px dashed #eee;padding-top:4px">Total: ' + esc(money(o.total)) + '</div>' : '')
+        + (o.total ? '<div class="toc-total" style="display:flex;justify-content:space-between;border-top:2px solid #14110F;padding-top:8px;margin-top:8px;font-weight:800;font-size:1rem;color:#14110F!important"><span style="color:#14110F!important;font-weight:800">Total</span><span style="color:#14110F!important;font-weight:800">' + esc(money(o.total)) + '</span></div>' : '')
       ) : (
         '<div style="font-size:.85rem;margin:8px 0;font-weight:700">' + esc(o.serviceTitle || o.service_title || 'Room Service Request') + '</div>'
       ))
