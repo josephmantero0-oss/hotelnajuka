@@ -425,7 +425,7 @@ a.ghost{text-decoration:none;display:inline-block}
   <div class="grain" aria-hidden="true"><i></i><i></i><i></i></div>
   <header><div class="wrap">
     <div style="display:flex;align-items:center;gap:10px"><a class="logo" href="#top">Najuka<b></b></a><div id="room-badge" class="room-badge" hidden><span class="room-badge-dot"></span><span id="room-badge-text">ROOM</span><small>VERIFIED</small></div></div>
-    <nav aria-label="Main"><a href="#dining">Dining</a><a href="#stay">Stay info</a><a href="#track" id="navtrack" style="display:inline-flex;align-items:center;gap:4px">🛵 Track<span id="navtrackbadge" style="display:none;background:var(--hot,#D84A1B);color:#fff;border-radius:10px;padding:1px 6px;font-size:0.7rem;font-weight:700">0</span></a><a href="#menu" data-menu>Menu</a><a href="#menu" id="admintop" class="adm">Admin</a><span class="lang" role="group" aria-label="Language"><button type="button" data-l="en" aria-pressed="true">EN</button><button type="button" data-l="mr" aria-pressed="false">मराठी</button><button type="button" data-l="hi" aria-pressed="false">हिंदी</button></span></nav>
+    <nav aria-label="Main"><a href="#dining">Dining</a><a href="#stay">Stay info</a><a href="#track" id="navtrack" style="display:inline-flex;align-items:center;gap:4px">🛎️ Track<span id="navtrackbadge" style="display:none;background:var(--hot,#D84A1B);color:#fff;border-radius:10px;padding:1px 6px;font-size:0.7rem;font-weight:700">0</span></a><a href="#menu" data-menu>Menu</a><a href="#menu" id="admintop" class="adm">Admin</a><span class="lang" role="group" aria-label="Language"><button type="button" data-l="en" aria-pressed="true">EN</button><button type="button" data-l="mr" aria-pressed="false">मराठी</button><button type="button" data-l="hi" aria-pressed="false">हिंदी</button></span></nav>
   </div></header>
   <main id="top" class="wrap stage">
     <div class="copy">
@@ -1252,7 +1252,7 @@ function fetchLiveOrders(){
   .catch(function(err){ console.error("Direct Supabase poll error:", err); });
 }
 fetchLiveOrders();
-setInterval(fetchLiveOrders, 60000); // 60s for guest-side; admin can reload
+setInterval(fetchLiveOrders, 15000); // 15s polling for all views
 mbody.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="apass")authGo()});
 document.getElementById("mclose").addEventListener("click",function(){go("view")});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&view!=="view")go("view")});
@@ -1465,7 +1465,7 @@ function renderNajukaTrackOrders(){
   var actives = getNajukaActiveGuestOrders();
   if(!actives.length){
     return '<div style="text-align:center;padding:40px 20px;color:#666">'
-      + '<div style="font-size:2.8rem;margin-bottom:12px">🛵</div>'
+      + '<div style="font-size:2.8rem;margin-bottom:12px">🛎️</div>'
       + '<h3 style="font-family:var(--serif,Georgia);font-size:1.25rem;margin:0 0 8px;color:var(--ink,#14110F)">No Active Orders</h3>'
       + '<p style="font-size:0.85rem;line-height:1.5;margin:0;color:#666">Orders you place for food or front desk services will appear here with live updates.</p>'
       + '</div>';
@@ -1725,7 +1725,7 @@ document.addEventListener("input", function(e){
 
 <!-- Floating Track Orders Pill -->
 <button type="button" id="docktrack" class="dock-track-btn" aria-label="Track orders" style="position:fixed;bottom:20px;right:20px;z-index:90;display:none;align-items:center;gap:8px;background:var(--ink,#14110F);color:#fff;border:2px solid var(--paper,#fff);border-radius:30px;padding:10px 18px;font-family:var(--sans,system-ui);font-size:0.85rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,0.25);cursor:pointer;transition:transform .2s ease">
-  <span>🛵 Track Orders</span>
+  <span>🛎️ Track Orders</span>
   <span id="docktrackbadge" style="background:var(--hot,#D84A1B);color:#fff;border-radius:12px;padding:2px 8px;font-size:0.75rem;font-weight:800">0</span>
 </button>
 
@@ -1735,8 +1735,8 @@ document.addEventListener("input", function(e){
 <!-- Track Sheet Modal Drawer -->
 <div id="tracksheet" style="position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:580px;height:min(88vh,660px);z-index:96;background:var(--bg,#FDFCF7);border:2px solid var(--ink,#14110F);border-bottom:0;border-radius:24px 24px 0 0;display:none;flex-direction:column;box-shadow:0 -18px 40px rgba(20,17,15,.35);padding-bottom:env(safe-area-inset-bottom,0px)">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1.5px solid rgba(20,17,15,0.12);background:var(--paper,#fff);border-radius:22px 22px 0 0">
-    <div style="font-family:var(--serif,Georgia);font-size:1.15rem;font-weight:700;color:var(--ink,#14110F)">🛵 Live Room Orders & Requests</div>
-    <button type="button" id="tracksheetclose" style="background:none;border:none;font-size:1.4rem;color:var(--ink,#14110F);cursor:pointer;line-height:1;padding:4px 8px" aria-label="Close">✕</button>
+    <div style="font-family:var(--serif,Georgia);font-size:1.15rem;font-weight:800;color:#14110F !important">🛎️ Live Room Orders & Requests</div>
+    <button type="button" id="tracksheetclose" style="background:none;border:none;font-size:1.4rem;font-weight:800;color:#14110F !important;cursor:pointer;line-height:1;padding:4px 8px;opacity:1" aria-label="Close">✕</button>
   </div>
   <div id="tracksheetcontent" style="padding:16px 18px 30px;overflow-y:auto;flex:1">
     <!-- Live orders dynamically loaded here -->
